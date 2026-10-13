@@ -1,0 +1,53 @@
+name: aquacontrol
+
+services:
+  broker:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"   # MQTT
+      # - "9001:9001" # MQTT over WebSocket — только для браузерных MQTT-клиентов.
+      #                 Раскомментируйте при необходимости; на некоторых Windows-хостах
+      #                 порт 9001 занят системой и мешает старту брокера.
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -t '$$SYS/#' -C 1 -W 3 -h localhost || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../backend
+    depends_on:
+      broker:
+        condition: service_started
+    environment:
+      AQUA_BROKER_HOST: broker
+      AQUA_BROKER_PORT: "1883"
+      AQUA_DATABASE_URL: sqlite:////data/aqua.db
+      AQUA_PUSH_PROVIDER: console
+      AQUA_CORS_ORIGINS: "*"
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_data:/data
+
+  device:
+    build:
+      context: ../firmware
+    depends_on:
+      - broker
+    environment:
+      AQUA_DEVICE_ID: tank-01
+      AQUA_BROKER_HOST: broker
+      AQUA_BROKER_PORT: "1883"
+      AQUA_TELEMETRY_INTERVAL: "3"
+      AQUA_TIME_SCALE: "1.0"
+      # Inject faults for a live demo, e.g. AQUA_FAULTS: "heater_stuck_off"
+      AQUA_FAULTS: ""
+
+volumes:
+  mosquitto_data:
+  backend_data:

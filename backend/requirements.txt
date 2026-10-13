@@ -1,0 +1,11 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+paho-mqtt==2.1.0
+SQLAlchemy==2.0.36
+pydantic==2.10.4
+pydantic-settings==2.7.1
+APScheduler==3.11.0
+httpx==0.28.1
+
+# dev / test
+pytest==8.3.4
